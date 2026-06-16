@@ -20,7 +20,7 @@ interface SettingsSection {
 }
 
 export default function SettingsPage() {
-  const { settings, updateSettings, exportData, importData, clearAllData, pets, records } = usePetStore()
+  const { settings, updateSettings, exportData, importData, clearAllData, pets, records, getTotalTasksCompleted, getTotalTreasuresClaimed } = usePetStore()
   const { showToast } = useToast()
 
   const [showClearModal, setShowClearModal] = useState(false)
@@ -226,6 +226,16 @@ export default function SettingsPage() {
           label: '连续签到',
           description: '保持每日打开应用',
           value: `${settings.streakDays} 天`,
+        },
+        {
+          label: '累计完成任务',
+          description: '完成的每日任务总数',
+          value: `${getTotalTasksCompleted()} 个`,
+        },
+        {
+          label: '累计领取宝箱',
+          description: '完成全部任务后领取的宝箱',
+          value: `${getTotalTreasuresClaimed()} 个`,
         },
       ],
     },

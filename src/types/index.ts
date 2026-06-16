@@ -100,3 +100,53 @@ export interface Sticker {
   recordId: string
   isNew: boolean
 }
+
+export type TaskType = 'feed' | 'pet' | 'adventure' | 'bedtime' | 'play' | 'total_interact' | 'streak_signin'
+
+export interface TaskReward {
+  exp: number
+  mood: number
+  coins?: number
+  description: string
+}
+
+export interface DailyTaskConfig {
+  id: string
+  type: TaskType
+  name: string
+  description: string
+  target: number
+  interactionType?: InteractionType
+  reward: TaskReward
+  icon: string
+  color: string
+}
+
+export interface DailyTask {
+  id: string
+  configId: string
+  type: TaskType
+  currentProgress: number
+  target: number
+  isCompleted: boolean
+  isClaimed: boolean
+  completedAt?: string
+  reward: TaskReward
+}
+
+export interface DailyTasksData {
+  date: string
+  tasks: DailyTask[]
+  treasureClaimed: boolean
+  treasureReward: TaskReward
+  taskStreakDays: number
+  lastCompletedDate: string
+  totalTasksCompleted: number
+  totalTreasuresClaimed: number
+  dailyHistory: Array<{
+    date: string
+    totalTasks: number
+    completedTasks: number
+    treasureClaimed: boolean
+  }>
+}

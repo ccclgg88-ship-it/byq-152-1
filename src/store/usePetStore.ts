@@ -8,10 +8,13 @@ import {
   PetSpecies,
   Achievement,
   Sticker,
+  DailyTasksData,
+  DailyTask,
+  TaskReward,
 } from '@/types'
 import {
   loadFromStorage,
-  saveToStorage,
+  saveToStorage as saveToStorageUtil,
   clearStorage,
   exportDataToJson,
   importDataFromJson,
@@ -28,8 +31,10 @@ import {
   STICKER_ID_TO_EMOJI,
   ACHIEVEMENT_LIST,
   STICKER_LIST,
+  DAILY_TASK_POOL,
+  TREASURE_REWARD,
 } from '@/data/species'
-import { getTodayString, getLastNDays, formatDateTime, getDaysAgo, formatDate } from '@/utils/date'
+import { getTodayString, getLastNDays, formatDateTime, getDaysAgo, formatDate, isYesterday } from '@/utils/date'
 
 interface PetStore {
   pets: Pet[]
@@ -38,7 +43,9 @@ interface PetStore {
   settings: UserSettings
   achievements: Achievement[]
   stickers: Sticker[]
+  dailyTasksData: DailyTasksData | null
   pendingAchievement: Achievement | null
+  pendingTaskCompletedId: string | null
   isLoading: boolean
   error: string | null
   hasData: boolean
@@ -52,6 +59,30 @@ interface PetStore {
 
   interact: (petId: string, type: InteractionType) => InteractionRecord | null
   checkAndUnlockAchievements: () => void
+
+  refreshDailyTasks: () => void
+  updateTaskProgress: (interactionType: InteractionType) => string | null
+  claimTaskReward: (taskId: string) => boolean
+  claimDailyTreasure: () => boolean
+  clearPendingTaskCompleted: () => void
+
+  getTodayTasksSummary: () => {
+    total: number
+    completed: number
+    claimed: number
+    streak: number
+    canClaimTreasure: boolean
+  }
+  getTaskHistory7Days: () => Array<{
+    date: string
+    label: string
+    completed: number
+    total: number
+    treasureClaimed: boolean
+  }>
+  getWeeklyCompletionRate: () => number
+  getTotalTasksCompleted: () => number
+  getTotalTreasuresClaimed: () => number
 
   getTodayStats: () => { minutes: number; streak: number }
   getWeeklyMoodData: (petId: string) => { labels: string[]; moodData: number[]; timeData: number[] }
@@ -169,6 +200,36 @@ const convertStickerEmojiToId = (stickerText: string): string | null => {
   return STICKER_ID_TO_EMOJI[stickerText] || null
 }
 
+const generateDailyTasks = (): DailyTask[] => {
+  const pool = [...DAILY_TASK_POOL]
+  const count = 4 + Math.floor(Math.random() * 2)
+  const shuffled = pool.sort(() => Math.random() - 0.5)
+  const selected = shuffled.slice(0, Math.min(count, pool.length))
+
+  return selected.map((config) => ({
+    id: generateId(),
+    configId: config.id,
+    type: config.type,
+    currentProgress: 0,
+    target: config.target,
+    isCompleted: false,
+    isClaimed: false,
+    reward: { ...config.reward },
+  }))
+}
+
+const getDefaultDailyTasksData = (): DailyTasksData => ({
+  date: getTodayString(),
+  tasks: generateDailyTasks(),
+  treasureClaimed: false,
+  treasureReward: { ...TREASURE_REWARD },
+  taskStreakDays: 0,
+  lastCompletedDate: '',
+  totalTasksCompleted: 0,
+  totalTreasuresClaimed: 0,
+  dailyHistory: [],
+})
+
 export const usePetStore = create<PetStore>((set, get) => ({
   pets: [],
   records: [],
@@ -176,7 +237,9 @@ export const usePetStore = create<PetStore>((set, get) => ({
   settings: getDefaultSettings(),
   achievements: [],
   stickers: [],
+  dailyTasksData: null,
   pendingAchievement: null,
+  pendingTaskCompletedId: null,
   isLoading: true,
   error: null,
   hasData: false,
@@ -188,6 +251,52 @@ export const usePetStore = create<PetStore>((set, get) => ({
         const settings = updateStreak(data.settings || getDefaultSettings())
         const achievements = data.achievements || []
         const stickers = data.stickers || []
+        let dailyTasksData = data.dailyTasks || null
+
+        const today = getTodayString()
+        if (!dailyTasksData || dailyTasksData.date !== today) {
+          if (dailyTasksData && dailyTasksData.date !== today) {
+            const yesterdayTasks = dailyTasksData.tasks
+            const completedCount = yesterdayTasks.filter((t: DailyTask) => t.isCompleted).length
+            const allCompleted = completedCount === yesterdayTasks.length && dailyTasksData.treasureClaimed
+
+            let newHistory = dailyTasksData.dailyHistory || []
+            newHistory = [
+              ...newHistory,
+              {
+                date: dailyTasksData.date,
+                totalTasks: yesterdayTasks.length,
+                completedTasks: completedCount,
+                treasureClaimed: dailyTasksData.treasureClaimed,
+              },
+            ].slice(-7)
+
+            let newStreakDays = dailyTasksData.taskStreakDays || 0
+            if (allCompleted) {
+              if (isYesterday(dailyTasksData.date) || dailyTasksData.lastCompletedDate === dailyTasksData.date) {
+                newStreakDays += 1
+              } else {
+                newStreakDays = 1
+              }
+            } else if (!isYesterday(dailyTasksData.lastCompletedDate)) {
+              newStreakDays = 0
+            }
+
+            dailyTasksData = {
+              date: today,
+              tasks: generateDailyTasks(),
+              treasureClaimed: false,
+              treasureReward: { ...TREASURE_REWARD },
+              taskStreakDays: newStreakDays,
+              lastCompletedDate: allCompleted ? dailyTasksData.date : dailyTasksData.lastCompletedDate,
+              totalTasksCompleted: (dailyTasksData.totalTasksCompleted || 0) + completedCount,
+              totalTreasuresClaimed: (dailyTasksData.totalTreasuresClaimed || 0) + (dailyTasksData.treasureClaimed ? 1 : 0),
+              dailyHistory: newHistory,
+            }
+          } else {
+            dailyTasksData = getDefaultDailyTasksData()
+          }
+        }
 
         set({
           pets: data.pets || [],
@@ -196,6 +305,7 @@ export const usePetStore = create<PetStore>((set, get) => ({
           settings,
           achievements,
           stickers,
+          dailyTasksData,
           isLoading: false,
           hasData: data.pets.length > 0,
         })
@@ -211,6 +321,7 @@ export const usePetStore = create<PetStore>((set, get) => ({
           settings: getDefaultSettings(),
           achievements: [],
           stickers: [],
+          dailyTasksData: getDefaultDailyTasksData(),
           isLoading: false,
           hasData: false,
         })
@@ -394,7 +505,216 @@ export const usePetStore = create<PetStore>((set, get) => ({
 
     get().saveToStorage()
     setTimeout(() => get().checkAndUnlockAchievements(), 50)
+    const completedTaskId = get().updateTaskProgress(type)
+    if (completedTaskId) {
+      set({ pendingTaskCompletedId: completedTaskId })
+    }
     return record
+  },
+
+  refreshDailyTasks: () => {
+    set({ dailyTasksData: getDefaultDailyTasksData() })
+    get().saveToStorage()
+  },
+
+  updateTaskProgress: (interactionType: InteractionType): string | null => {
+    const state = get()
+    const data = state.dailyTasksData
+    if (!data) return null
+
+    let completedTaskId: string | null = null
+    const updatedTasks = data.tasks.map((task) => {
+      if (task.isCompleted) return task
+
+      const config = DAILY_TASK_POOL.find((c) => c.id === task.configId)
+      if (!config) return task
+
+      let shouldIncrement = false
+      if (task.type === 'total_interact') {
+        shouldIncrement = true
+      } else if (config.interactionType) {
+        shouldIncrement = config.interactionType === interactionType
+      }
+
+      if (!shouldIncrement) return task
+
+      const newProgress = Math.min(task.currentProgress + 1, task.target)
+      const nowCompleted = newProgress >= task.target && !task.isCompleted
+
+      if (nowCompleted) {
+        completedTaskId = task.id
+      }
+
+      return {
+        ...task,
+        currentProgress: newProgress,
+        isCompleted: newProgress >= task.target,
+        completedAt: nowCompleted ? new Date().toISOString() : task.completedAt,
+      }
+    })
+
+    set({
+      dailyTasksData: {
+        ...data,
+        tasks: updatedTasks,
+      },
+    })
+    get().saveToStorage()
+    return completedTaskId
+  },
+
+  claimTaskReward: (taskId: string): boolean => {
+    const state = get()
+    const data = state.dailyTasksData
+    if (!data) return false
+
+    const task = data.tasks.find((t) => t.id === taskId)
+    if (!task || !task.isCompleted || task.isClaimed) return false
+
+    const updatedTasks = data.tasks.map((t) =>
+      t.id === taskId ? { ...t, isClaimed: true } : t
+    )
+
+    set({
+      dailyTasksData: {
+        ...data,
+        tasks: updatedTasks,
+      },
+    })
+    get().saveToStorage()
+    return true
+  },
+
+  claimDailyTreasure: (): boolean => {
+    const state = get()
+    const data = state.dailyTasksData
+    const mainPet = state.getMainPet()
+    if (!data || !mainPet) return false
+
+    const allCompleted = data.tasks.every((t) => t.isCompleted)
+    if (!allCompleted || data.treasureClaimed) return false
+
+    const reward = data.treasureReward
+    const newMoodValue = clampMoodValue(mainPet.moodValue + reward.mood)
+    const newMood = getMoodFromValue(newMoodValue)
+    const newExp = mainPet.exp + reward.exp
+    const newLevel = calculateLevel(newExp)
+
+    const recordId = generateId()
+    const rewardRecord: InteractionRecord = {
+      id: recordId,
+      petId: mainPet.id,
+      type: 'play',
+      description: `${mainPet.name} 领取了今日陪伴宝箱奖励`,
+      details: {
+        reward: reward.description,
+        expGain: reward.exp,
+        moodGain: reward.mood,
+      },
+      moodChange: reward.mood,
+      expGain: reward.exp,
+      createdAt: new Date().toISOString(),
+    }
+
+    set((prevState) => ({
+      pets: prevState.pets.map((p) =>
+        p.id === mainPet.id
+          ? {
+              ...p,
+              moodValue: newMoodValue,
+              mood: newMood,
+              exp: newExp,
+              level: newLevel,
+              lastInteractionAt: new Date().toISOString(),
+            }
+          : p
+      ),
+      records: [rewardRecord, ...prevState.records],
+      dailyTasksData: {
+        ...data,
+        treasureClaimed: true,
+      },
+    }))
+
+    get().saveToStorage()
+    setTimeout(() => get().checkAndUnlockAchievements(), 50)
+    return true
+  },
+
+  clearPendingTaskCompleted: () => {
+    set({ pendingTaskCompletedId: null })
+  },
+
+  getTodayTasksSummary: () => {
+    const data = get().dailyTasksData
+    if (!data) {
+      return { total: 0, completed: 0, claimed: 0, streak: 0, canClaimTreasure: false }
+    }
+    const total = data.tasks.length
+    const completed = data.tasks.filter((t) => t.isCompleted).length
+    const claimed = data.tasks.filter((t) => t.isClaimed).length
+    return {
+      total,
+      completed,
+      claimed,
+      streak: data.taskStreakDays,
+      canClaimTreasure: total > 0 && completed === total && !data.treasureClaimed,
+    }
+  },
+
+  getTaskHistory7Days: () => {
+    const data = get().dailyTasksData
+    const last7Days = getLastNDays(7)
+    const history = data?.dailyHistory || []
+
+    return last7Days.map((date) => {
+      const label = date.slice(5)
+      const today = getTodayString()
+      if (date === today) {
+        const summary = get().getTodayTasksSummary()
+        return {
+          date,
+          label,
+          completed: summary.completed,
+          total: summary.total || 5,
+          treasureClaimed: data?.treasureClaimed || false,
+        }
+      }
+      const record = history.find((h) => h.date === date)
+      if (record) {
+        return {
+          date,
+          label,
+          completed: record.completedTasks,
+          total: record.totalTasks,
+          treasureClaimed: record.treasureClaimed,
+        }
+      }
+      return {
+        date,
+        label,
+        completed: 0,
+        total: 0,
+        treasureClaimed: false,
+      }
+    })
+  },
+
+  getWeeklyCompletionRate: () => {
+    const history = get().getTaskHistory7Days().filter((d) => d.total > 0)
+    if (history.length === 0) return 0
+    const totalCompleted = history.reduce((sum, d) => sum + d.completed, 0)
+    const totalTasks = history.reduce((sum, d) => sum + d.total, 0)
+    if (totalTasks === 0) return 0
+    return Math.round((totalCompleted / totalTasks) * 100)
+  },
+
+  getTotalTasksCompleted: () => {
+    return get().dailyTasksData?.totalTasksCompleted || 0
+  },
+
+  getTotalTreasuresClaimed: () => {
+    return get().dailyTasksData?.totalTreasuresClaimed || 0
   },
 
   getTodayStats: () => {
@@ -570,13 +890,29 @@ export const usePetStore = create<PetStore>((set, get) => ({
   },
 
   exportData: () => {
-    const { pets, records, dailyStats, settings, achievements, stickers } = get()
-    return exportDataToJson({ pets, records, dailyStats, settings, achievements, stickers })
+    const { pets, records, dailyStats, settings, achievements, stickers, dailyTasksData } = get()
+    return exportDataToJson({ pets, records, dailyStats, settings, achievements, stickers, dailyTasks: dailyTasksData })
   },
 
   importData: (json: string) => {
     const data = importDataFromJson(json)
     if (!data) return false
+
+    const today = getTodayString()
+    let dailyTasksData = data.dailyTasks || null
+
+    if (!dailyTasksData) {
+      dailyTasksData = getDefaultDailyTasksData()
+    } else if (dailyTasksData.date !== today) {
+      dailyTasksData = {
+        ...getDefaultDailyTasksData(),
+        taskStreakDays: dailyTasksData.taskStreakDays || 0,
+        lastCompletedDate: dailyTasksData.lastCompletedDate || '',
+        totalTasksCompleted: dailyTasksData.totalTasksCompleted || 0,
+        totalTreasuresClaimed: dailyTasksData.totalTreasuresClaimed || 0,
+        dailyHistory: dailyTasksData.dailyHistory || [],
+      }
+    }
 
     set({
       pets: data.pets,
@@ -585,6 +921,7 @@ export const usePetStore = create<PetStore>((set, get) => ({
       settings: data.settings,
       achievements: data.achievements || [],
       stickers: data.stickers || [],
+      dailyTasksData,
       hasData: data.pets.length > 0,
     })
     get().saveToStorage()
@@ -600,13 +937,15 @@ export const usePetStore = create<PetStore>((set, get) => ({
       settings: getDefaultSettings(),
       achievements: [],
       stickers: [],
+      dailyTasksData: getDefaultDailyTasksData(),
       pendingAchievement: null,
+      pendingTaskCompletedId: null,
       hasData: false,
     })
   },
 
   saveToStorage: () => {
-    const { pets, records, dailyStats, settings, achievements, stickers } = get()
-    saveToStorage({ pets, records, dailyStats, settings, achievements, stickers })
+    const { pets, records, dailyStats, settings, achievements, stickers, dailyTasksData } = get()
+    saveToStorageUtil({ pets, records, dailyStats, settings, achievements, stickers, dailyTasks: dailyTasksData })
   },
 }))

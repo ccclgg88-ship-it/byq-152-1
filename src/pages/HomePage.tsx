@@ -4,19 +4,20 @@ import MoodRing from '@/components/MoodRing'
 import { useToast } from '@/hooks/useToast'
 import { getRelativeTime } from '@/utils/date'
 import { getExpProgress, getNextLevelExp, getMoodName, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
-import { Utensils, Hand, Map, Moon, Sparkles, Flame, Clock, Award, Image, ChevronRight } from 'lucide-react'
+import { Utensils, Hand, Map, Moon, Sparkles, Flame, Clock, Award, Image, ChevronRight, ListTodo, Gift } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { InteractionType } from '@/types'
 import { ACHIEVEMENT_LIST, STICKER_LIST } from '@/data/species'
 
 export default function HomePage() {
-  const { getMainPet, interact, getTodayStats, hasData, pets, getRecentAchievements, getRecentStickers, hasNewItems } = usePetStore()
+  const { getMainPet, interact, getTodayStats, hasData, pets, getRecentAchievements, getRecentStickers, hasNewItems, getTodayTasksSummary } = usePetStore()
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [isInteracting, setIsInteracting] = useState<string | null>(null)
 
   const mainPet = getMainPet()
   const todayStats = getTodayStats()
+  const taskSummary = getTodayTasksSummary()
 
   const handleInteract = async (type: InteractionType) => {
     if (!mainPet || isInteracting) return
@@ -111,6 +112,63 @@ export default function HomePage() {
           </div>
         </div>
       </div>
+
+      {taskSummary.total > 0 && (
+        <button
+          onClick={() => navigate('/tasks')}
+          className="w-full mb-8 pet-card p-5 text-left transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden"
+          style={{
+            background: taskSummary.canClaimTreasure
+              ? 'linear-gradient(135deg, #FEF3C7 0%, #FECACA 50%, #DDD6FE 100%)'
+              : undefined,
+          }}
+        >
+          {taskSummary.canClaimTreasure && (
+            <div className="absolute top-3 right-3 px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-xs font-bold shadow-md animate-pulse-slow flex items-center gap-1">
+              <Gift size={12} />
+              宝箱可领取
+            </div>
+          )}
+
+          <div className="flex items-center gap-4">
+            <div
+              className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-md ${
+                taskSummary.canClaimTreasure ? 'bg-gradient-to-br from-yellow-400 to-orange-400' : 'bg-gradient-to-br from-purple-400 to-pink-400'
+              }`}
+            >
+              <ListTodo className="text-white" size={24} />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <p className="font-bold text-gray-800 dark:text-gray-100">
+                  今日任务进度
+                </p>
+                <span className="text-sm text-purple-600 dark:text-purple-300 font-semibold">
+                  {taskSummary.completed}/{taskSummary.total} 已完成
+                </span>
+                {taskSummary.streak > 0 && (
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-300 font-medium">
+                    🔥 连胜 {taskSummary.streak} 天
+                  </span>
+                )}
+              </div>
+              <div className="w-full max-w-md bg-gray-200/70 dark:bg-gray-700/70 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    taskSummary.canClaimTreasure
+                      ? 'bg-gradient-to-r from-yellow-400 via-orange-400 to-pink-400 animate-pulse-slow'
+                      : 'bg-gradient-to-r from-purple-400 via-pink-400 to-orange-400'
+                  }`}
+                  style={{
+                    width: `${taskSummary.total > 0 ? (taskSummary.completed / taskSummary.total) * 100 : 0}%`,
+                  }}
+                />
+              </div>
+            </div>
+            <ChevronRight size={22} className="text-gray-400 flex-shrink-0" />
+          </div>
+        </button>
+      )}
 
       <div className="pet-card p-6 md:p-8 mb-8">
         <div className="flex flex-col md:flex-row items-center gap-8">

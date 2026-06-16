@@ -7,10 +7,12 @@ import PetsPage from '@/pages/PetsPage'
 import RecordsPage from '@/pages/RecordsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import CollectionPage from '@/pages/CollectionPage'
+import TasksPage from '@/pages/TasksPage'
 import ToastContainer from '@/components/ToastContainer'
 import AchievementUnlockModal from '@/components/AchievementUnlockModal'
+import TaskCompleteModal from '@/components/TaskCompleteModal'
 import { ToastItem, ToastType } from '@/types'
-import { ACHIEVEMENT_LIST } from '@/data/species'
+import { ACHIEVEMENT_LIST, DAILY_TASK_POOL } from '@/data/species'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const ToastContext = createContext<{
@@ -18,7 +20,7 @@ export const ToastContext = createContext<{
 }>({ showToast: () => {} })
 
 function App() {
-  const { init, settings, isLoading, error, pendingAchievement, clearPendingAchievement } = usePetStore()
+  const { init, settings, isLoading, error, pendingAchievement, clearPendingAchievement, pendingTaskCompletedId, clearPendingTaskCompleted } = usePetStore()
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   useEffect(() => {
@@ -49,6 +51,11 @@ function App() {
     if (!pendingAchievement) return null
     return ACHIEVEMENT_LIST.find((a) => a.id === pendingAchievement.id) || null
   }, [pendingAchievement])
+
+  const pendingTaskConfig = useMemo(() => {
+    if (!pendingTaskCompletedId) return null
+    return DAILY_TASK_POOL.find((t) => t.id === pendingTaskCompletedId) || null
+  }, [pendingTaskCompletedId])
 
   if (isLoading) {
     return (
@@ -89,6 +96,7 @@ function App() {
               <Route path="/pets" element={<PetsPage />} />
               <Route path="/records" element={<RecordsPage />} />
               <Route path="/collection" element={<CollectionPage />} />
+              <Route path="/tasks" element={<TasksPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
@@ -98,6 +106,11 @@ function App() {
             isOpen={!!pendingAchievement}
             onClose={clearPendingAchievement}
             achievement={pendingAchievementConfig}
+          />
+          <TaskCompleteModal
+            isOpen={!!pendingTaskCompletedId}
+            onClose={clearPendingTaskCompleted}
+            task={pendingTaskConfig}
           />
         </div>
       </ErrorBoundary>

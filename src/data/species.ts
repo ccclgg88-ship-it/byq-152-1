@@ -1,4 +1,4 @@
-import { SpeciesConfig, AchievementConfig, StickerConfig } from '@/types'
+import { SpeciesConfig, AchievementConfig, StickerConfig, DailyTaskConfig, TaskReward } from '@/types'
 
 export const SPECIES_LIST: SpeciesConfig[] = [
   {
@@ -316,4 +316,88 @@ export const EMOJI_TO_STICKER_ID: Record<string, string> = {
   'shiny_gem': '💎 闪亮宝石',
   'flower_badge': '🌸 花朵徽章',
   'adventurer_badge': '🚀 冒险家徽章',
+}
+
+export const TREASURE_REWARD: TaskReward = {
+  exp: 50,
+  mood: 20,
+  description: '今日陪伴宝箱：50 经验 + 20 心情',
+}
+
+export const DAILY_TASK_POOL: DailyTaskConfig[] = [
+  {
+    id: 'daily_feed',
+    type: 'feed',
+    name: '美食投喂官',
+    description: '喂食宠物，让它吃得饱饱的',
+    target: 3,
+    interactionType: 'feed',
+    reward: { exp: 15, mood: 0, description: '15 经验值' },
+    icon: '🍖',
+    color: '#FFB6C1',
+  },
+  {
+    id: 'daily_pet',
+    type: 'pet',
+    name: '温柔抚摸师',
+    description: '轻轻抚摸宠物，给它温暖',
+    target: 5,
+    interactionType: 'pet',
+    reward: { exp: 12, mood: 0, description: '12 经验值' },
+    icon: '🤚',
+    color: '#87CEEB',
+  },
+  {
+    id: 'daily_play',
+    type: 'play',
+    name: '快乐玩伴',
+    description: '陪宠物一起玩耍，增进感情',
+    target: 3,
+    interactionType: 'play',
+    reward: { exp: 18, mood: 0, description: '18 经验值' },
+    icon: '🎮',
+    color: '#DDA0DD',
+  },
+  {
+    id: 'daily_adventure',
+    type: 'adventure',
+    name: '小小冒险家',
+    description: '带宠物去冒险，探索新世界',
+    target: 1,
+    interactionType: 'adventure',
+    reward: { exp: 30, mood: 0, description: '30 经验值' },
+    icon: '🗺️',
+    color: '#FFA07A',
+  },
+  {
+    id: 'daily_bedtime',
+    type: 'bedtime',
+    name: '睡前故事家',
+    description: '给宠物讲睡前故事，陪伴入眠',
+    target: 2,
+    interactionType: 'bedtime',
+    reward: { exp: 16, mood: 0, description: '16 经验值' },
+    icon: '🌙',
+    color: '#9370DB',
+  },
+  {
+    id: 'daily_total_interact',
+    type: 'total_interact',
+    name: '今日陪伴达人',
+    description: '与宠物进行多次互动',
+    target: 10,
+    reward: { exp: 25, mood: 0, description: '25 经验值' },
+    icon: '💝',
+    color: '#FF6B6B',
+  },
+]
+
+export const TASK_TYPE_TO_INTERACTION: Record<string, string> = {
+  feed: 'feed',
+  pet: 'pet',
+  play: 'play',
+  adventure: 'adventure',
+  bedtime: 'bedtime',
+  total_interact: '',
+  streak_signin: '',
 }
