@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, createContext } from 'react'
+import React, { useEffect, useState, useCallback, createContext, useMemo } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { usePetStore } from '@/store/usePetStore'
 import Layout from '@/components/Layout'
@@ -6,8 +6,11 @@ import HomePage from '@/pages/HomePage'
 import PetsPage from '@/pages/PetsPage'
 import RecordsPage from '@/pages/RecordsPage'
 import SettingsPage from '@/pages/SettingsPage'
+import CollectionPage from '@/pages/CollectionPage'
 import ToastContainer from '@/components/ToastContainer'
+import AchievementUnlockModal from '@/components/AchievementUnlockModal'
 import { ToastItem, ToastType } from '@/types'
+import { ACHIEVEMENT_LIST } from '@/data/species'
 import ErrorBoundary from '@/components/ErrorBoundary'
 
 export const ToastContext = createContext<{
@@ -15,7 +18,7 @@ export const ToastContext = createContext<{
 }>({ showToast: () => {} })
 
 function App() {
-  const { init, settings, isLoading, error } = usePetStore()
+  const { init, settings, isLoading, error, pendingAchievement, clearPendingAchievement } = usePetStore()
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   useEffect(() => {
@@ -41,6 +44,11 @@ function App() {
       setToasts((prev) => prev.filter((t) => t.id !== id))
     }, duration)
   }, [])
+
+  const pendingAchievementConfig = useMemo(() => {
+    if (!pendingAchievement) return null
+    return ACHIEVEMENT_LIST.find((a) => a.id === pendingAchievement.id) || null
+  }, [pendingAchievement])
 
   if (isLoading) {
     return (
@@ -80,11 +88,17 @@ function App() {
               <Route path="/" element={<HomePage />} />
               <Route path="/pets" element={<PetsPage />} />
               <Route path="/records" element={<RecordsPage />} />
+              <Route path="/collection" element={<CollectionPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Layout>
           <ToastContainer toasts={toasts} />
+          <AchievementUnlockModal
+            isOpen={!!pendingAchievement}
+            onClose={clearPendingAchievement}
+            achievement={pendingAchievementConfig}
+          />
         </div>
       </ErrorBoundary>
     </ToastContext.Provider>

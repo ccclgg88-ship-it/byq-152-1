@@ -3,10 +3,10 @@ import { usePetStore } from '@/store/usePetStore'
 import PetCard from '@/components/PetCard'
 import Modal from '@/components/Modal'
 import { useToast } from '@/hooks/useToast'
-import { SPECIES_LIST } from '@/data/species'
+import { SPECIES_LIST, STICKER_LIST } from '@/data/species'
 import { validatePetName, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import { PetSpecies, Pet } from '@/types'
-import { Plus, Search, X, TrendingUp, Edit, Star } from 'lucide-react'
+import { Plus, Search, X, TrendingUp, Edit, Star, Image } from 'lucide-react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -32,7 +32,7 @@ ChartJS.register(
 )
 
 export default function PetsPage() {
-  const { pets, adoptPet, setMainPet, updatePetName, getWeeklyMoodData, hasData } = usePetStore()
+  const { pets, adoptPet, setMainPet, updatePetName, getWeeklyMoodData, hasData, getPetStickers } = usePetStore()
   const { showToast } = useToast()
 
   const [showAdoptModal, setShowAdoptModal] = useState(false)
@@ -468,7 +468,7 @@ export default function PetsPage() {
               >
                 <span className="text-3xl">{selectedPet.emoji}</span>
               </div>
-              <div>
+              <div className="flex-1">
                 <p className="font-bold text-gray-800 dark:text-gray-100">{selectedPet.name}</p>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-0.5">
                   {getSpeciesEmoji(selectedPet.species)} {getSpeciesName(selectedPet.species)}
@@ -477,7 +477,52 @@ export default function PetsPage() {
                   Lv.{selectedPet.level} · 经验 {selectedPet.exp}
                 </p>
               </div>
+              <div className="pet-card p-3 flex items-center gap-2">
+                <Image size={18} className="text-purple-500" />
+                <div className="text-center">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">贴纸</p>
+                  <p className="font-bold text-gray-800 dark:text-gray-100">
+                    {getPetStickers(selectedPet.id).length} 张
+                  </p>
+                </div>
+              </div>
             </div>
+
+            {getPetStickers(selectedPet.id).length > 0 && (
+              <div className="pet-card p-3">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">已收集贴纸</p>
+                <div className="flex flex-wrap gap-2">
+                  {(() => {
+                    const petStickers = getPetStickers(selectedPet.id)
+                    const uniqueStickerIds = [...new Set(petStickers.map((s) => s.id))]
+                    return uniqueStickerIds.slice(0, 8).map((stickerId) => {
+                      const config = STICKER_LIST.find((s) => s.id === stickerId)
+                      return (
+                        <div
+                          key={stickerId}
+                          className="w-10 h-10 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center text-xl"
+                          title={config?.name || ''}
+                        >
+                          {config?.emoji || '✨'}
+                        </div>
+                      )
+                    })
+                  })()}
+                  {(() => {
+                    const petStickers = getPetStickers(selectedPet.id)
+                    const uniqueCount = new Set(petStickers.map((s) => s.id)).size
+                    if (uniqueCount > 8) {
+                      return (
+                        <div className="w-10 h-10 rounded-xl bg-gray-200 dark:bg-gray-600 flex items-center justify-center text-xs font-bold text-gray-600 dark:text-gray-300">
+                          +{uniqueCount - 8}
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
+                </div>
+              </div>
+            )}
 
             {hasDataForChart ? (
               <div className="h-64 md:h-80">

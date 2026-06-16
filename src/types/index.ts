@@ -61,3 +61,42 @@ export interface ToastItem {
   message: string
   duration: number
 }
+
+export type AchievementCategory = 'first' | 'growth' | 'companion' | 'explore'
+
+export interface AchievementConfig {
+  id: string
+  name: string
+  description: string
+  category: AchievementCategory
+  icon: string
+  color: string
+  condition: {
+    type: 'adopt' | 'level' | 'interact' | 'adventure' | 'streak' | 'species' | 'mood' | 'time'
+    target: number
+    species?: PetSpecies
+    interactionType?: InteractionType
+  }
+}
+
+export interface Achievement {
+  id: string
+  unlockedAt: string
+  isNew: boolean
+}
+
+export interface StickerConfig {
+  id: string
+  name: string
+  emoji: string
+  rarity: 'common' | 'rare' | 'legendary'
+  description: string
+}
+
+export interface Sticker {
+  id: string
+  obtainedAt: string
+  petId: string
+  recordId: string
+  isNew: boolean
+}

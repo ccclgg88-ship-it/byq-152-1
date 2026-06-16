@@ -6,6 +6,8 @@ import {
   UserSettings,
   InteractionType,
   PetSpecies,
+  Achievement,
+  Sticker,
 } from '@/types'
 import {
   loadFromStorage,
@@ -13,7 +15,6 @@ import {
   clearStorage,
   exportDataToJson,
   importDataFromJson,
-  isValidData,
 } from '@/utils/storage'
 import {
   generateId,
@@ -21,14 +22,23 @@ import {
   clampMoodValue,
   calculateLevel,
 } from '@/utils/pet'
-import { SPECIES_LIST, INTERACTION_CONFIG, ADVENTURE_STICKERS } from '@/data/species'
-import { getTodayString, getLastNDays, formatDateTime } from '@/utils/date'
+import {
+  SPECIES_LIST,
+  INTERACTION_CONFIG,
+  STICKER_ID_TO_EMOJI,
+  ACHIEVEMENT_LIST,
+  STICKER_LIST,
+} from '@/data/species'
+import { getTodayString, getLastNDays, formatDateTime, getDaysAgo, formatDate } from '@/utils/date'
 
 interface PetStore {
   pets: Pet[]
   records: InteractionRecord[]
   dailyStats: DailyStats[]
   settings: UserSettings
+  achievements: Achievement[]
+  stickers: Sticker[]
+  pendingAchievement: Achievement | null
   isLoading: boolean
   error: string | null
   hasData: boolean
@@ -41,6 +51,7 @@ interface PetStore {
   getPetById: (petId: string) => Pet | undefined
 
   interact: (petId: string, type: InteractionType) => InteractionRecord | null
+  checkAndUnlockAchievements: () => void
 
   getTodayStats: () => { minutes: number; streak: number }
   getWeeklyMoodData: (petId: string) => { labels: string[]; moodData: number[]; timeData: number[] }
@@ -49,6 +60,17 @@ interface PetStore {
     type?: InteractionType
     search?: string
   }) => InteractionRecord[]
+
+  getAchievementProgress: (achievementId: string) => number
+  getPetStickers: (petId: string) => Sticker[]
+  getRecentAchievements: (limit?: number) => Achievement[]
+  getRecentStickers: (limit?: number) => Sticker[]
+  getStickersLast7Days: () => number
+  markAchievementViewed: (achievementId: string) => void
+  markStickerViewed: (stickerId: string) => void
+  markAllViewed: () => void
+  clearPendingAchievement: () => void
+  hasNewItems: () => { achievements: boolean; stickers: boolean }
 
   updateSettings: (partial: Partial<UserSettings>) => void
   exportData: () => string
@@ -143,11 +165,18 @@ const updateStreak = (settings: UserSettings): UserSettings => {
   }
 }
 
+const convertStickerEmojiToId = (stickerText: string): string | null => {
+  return STICKER_ID_TO_EMOJI[stickerText] || null
+}
+
 export const usePetStore = create<PetStore>((set, get) => ({
   pets: [],
   records: [],
   dailyStats: [],
   settings: getDefaultSettings(),
+  achievements: [],
+  stickers: [],
+  pendingAchievement: null,
   isLoading: true,
   error: null,
   hasData: false,
@@ -157,20 +186,31 @@ export const usePetStore = create<PetStore>((set, get) => ({
       const data = loadFromStorage()
       if (data) {
         const settings = updateStreak(data.settings || getDefaultSettings())
+        const achievements = data.achievements || []
+        const stickers = data.stickers || []
+
         set({
           pets: data.pets || [],
           records: data.records || [],
           dailyStats: data.dailyStats || [],
           settings,
+          achievements,
+          stickers,
           isLoading: false,
           hasData: data.pets.length > 0,
         })
+
+        setTimeout(() => {
+          get().checkAndUnlockAchievements()
+        }, 100)
       } else {
         set({
           pets: [],
           records: [],
           dailyStats: [],
           settings: getDefaultSettings(),
+          achievements: [],
+          stickers: [],
           isLoading: false,
           hasData: false,
         })
@@ -180,6 +220,33 @@ export const usePetStore = create<PetStore>((set, get) => ({
         isLoading: false,
         error: '数据加载失败，请刷新页面重试',
       })
+    }
+  },
+
+  checkAndUnlockAchievements: () => {
+    const state = get()
+    const unlockedIds = new Set(state.achievements.map((a) => a.id))
+    const newlyUnlocked: Achievement[] = []
+
+    for (const config of ACHIEVEMENT_LIST) {
+      if (unlockedIds.has(config.id)) continue
+
+      const progress = state.getAchievementProgress(config.id)
+      if (progress >= 100) {
+        newlyUnlocked.push({
+          id: config.id,
+          unlockedAt: new Date().toISOString(),
+          isNew: true,
+        })
+      }
+    }
+
+    if (newlyUnlocked.length > 0) {
+      set((prevState) => ({
+        achievements: [...prevState.achievements, ...newlyUnlocked],
+        pendingAchievement: newlyUnlocked[0],
+      }))
+      get().saveToStorage()
     }
   },
 
@@ -197,6 +264,7 @@ export const usePetStore = create<PetStore>((set, get) => ({
     })
 
     get().saveToStorage()
+    setTimeout(() => get().checkAndUnlockAchievements(), 50)
     return true
   },
 
@@ -246,13 +314,32 @@ export const usePetStore = create<PetStore>((set, get) => ({
     const newLevel = calculateLevel(newExp)
 
     let details: Record<string, any> = {}
+    let stickerId: string | null = null
+
     if (type === 'adventure') {
-      const sticker = ADVENTURE_STICKERS[Math.floor(Math.random() * ADVENTURE_STICKERS.length)]
-      details = { sticker }
+      const allStickers = [...STICKER_LIST]
+      const weights = allStickers.map((s) => {
+        if (s.rarity === 'legendary') return 1
+        if (s.rarity === 'rare') return 3
+        return 6
+      })
+      const totalWeight = weights.reduce((a, b) => a + b, 0)
+      let random = Math.random() * totalWeight
+      let selectedSticker = allStickers[0]
+      for (let i = 0; i < allStickers.length; i++) {
+        random -= weights[i]
+        if (random <= 0) {
+          selectedSticker = allStickers[i]
+          break
+        }
+      }
+      stickerId = selectedSticker.id
+      details = { sticker: `${selectedSticker.emoji} ${selectedSticker.name}`, stickerId }
     }
 
+    const recordId = generateId()
     const record: InteractionRecord = {
-      id: generateId(),
+      id: recordId,
       petId,
       type,
       description: `${pet.name} ${config.name}了`,
@@ -283,14 +370,30 @@ export const usePetStore = create<PetStore>((set, get) => ({
         5
       )
 
+      let newStickers = state.stickers
+      if (stickerId) {
+        newStickers = [
+          ...state.stickers,
+          {
+            id: stickerId,
+            obtainedAt: new Date().toISOString(),
+            petId,
+            recordId,
+            isNew: true,
+          },
+        ]
+      }
+
       return {
         pets: updatedPets,
         records: [record, ...state.records],
         dailyStats: updatedDailyStats,
+        stickers: newStickers,
       }
     })
 
     get().saveToStorage()
+    setTimeout(() => get().checkAndUnlockAchievements(), 50)
     return record
   },
 
@@ -357,16 +460,118 @@ export const usePetStore = create<PetStore>((set, get) => ({
     return filtered
   },
 
+  getAchievementProgress: (achievementId: string) => {
+    const state = get()
+    const config = ACHIEVEMENT_LIST.find((a) => a.id === achievementId)
+    if (!config) return 0
+
+    const { condition } = config
+    let current = 0
+
+    switch (condition.type) {
+      case 'adopt':
+        current = state.pets.length
+        break
+      case 'species':
+        current = new Set(state.pets.map((p) => p.species)).size
+        break
+      case 'level':
+        current = Math.max(0, ...state.pets.map((p) => p.level))
+        break
+      case 'interact':
+        if (condition.interactionType) {
+          current = state.records.filter((r) => r.type === condition.interactionType).length
+        } else {
+          current = state.records.length
+        }
+        break
+      case 'adventure':
+        current = state.records.filter((r) => r.type === 'adventure').length
+        break
+      case 'streak':
+        current = state.settings.streakDays
+        break
+      case 'mood':
+        current = state.pets.some((p) => p.moodValue >= condition.target) ? condition.target : 0
+        break
+      case 'time':
+        current = state.dailyStats.reduce((sum, d) => sum + d.totalMinutes, 0)
+        break
+    }
+
+    return Math.min(100, Math.round((current / condition.target) * 100))
+  },
+
+  getPetStickers: (petId: string) => {
+    return get().stickers.filter((s) => s.petId === petId)
+  },
+
+  getRecentAchievements: (limit: number = 5) => {
+    return [...get().achievements]
+      .sort((a, b) => new Date(b.unlockedAt).getTime() - new Date(a.unlockedAt).getTime())
+      .slice(0, limit)
+  },
+
+  getRecentStickers: (limit: number = 5) => {
+    return [...get().stickers]
+      .sort((a, b) => new Date(b.obtainedAt).getTime() - new Date(a.obtainedAt).getTime())
+      .slice(0, limit)
+  },
+
+  getStickersLast7Days: () => {
+    const sevenDaysAgo = formatDate(getDaysAgo(7), 'YYYY-MM-DD')
+    return get().stickers.filter((s) => s.obtainedAt >= sevenDaysAgo).length
+  },
+
+  markAchievementViewed: (achievementId: string) => {
+    set((state) => ({
+      achievements: state.achievements.map((a) =>
+        a.id === achievementId ? { ...a, isNew: false } : a
+      ),
+    }))
+    get().saveToStorage()
+  },
+
+  markStickerViewed: (stickerId: string) => {
+    set((state) => ({
+      stickers: state.stickers.map((s) =>
+        s.id === stickerId ? { ...s, isNew: false } : s
+      ),
+    }))
+    get().saveToStorage()
+  },
+
+  markAllViewed: () => {
+    set((state) => ({
+      achievements: state.achievements.map((a) => ({ ...a, isNew: false })),
+      stickers: state.stickers.map((s) => ({ ...s, isNew: false })),
+    }))
+    get().saveToStorage()
+  },
+
+  clearPendingAchievement: () => {
+    set({ pendingAchievement: null })
+  },
+
+  hasNewItems: () => {
+    const state = get()
+    return {
+      achievements: state.achievements.some((a) => a.isNew),
+      stickers: state.stickers.some((s) => s.isNew),
+    }
+  },
+
   updateSettings: (partial) => {
     set((state) => ({
       settings: { ...state.settings, ...partial },
     }))
     get().saveToStorage()
+    setTimeout(() => get().checkAndUnlockAchievements(), 50)
   },
 
   exportData: () => {
-    const { pets, records, dailyStats, settings } = get()
-    return exportDataToJson({ pets, records, dailyStats, settings })
+    const { pets, records, dailyStats, settings, achievements, stickers } = get()
+    return exportDataToJson({ pets, records, dailyStats, settings, achievements, stickers })
   },
 
   importData: (json: string) => {
@@ -378,6 +583,8 @@ export const usePetStore = create<PetStore>((set, get) => ({
       records: data.records,
       dailyStats: data.dailyStats,
       settings: data.settings,
+      achievements: data.achievements || [],
+      stickers: data.stickers || [],
       hasData: data.pets.length > 0,
     })
     get().saveToStorage()
@@ -391,12 +598,15 @@ export const usePetStore = create<PetStore>((set, get) => ({
       records: [],
       dailyStats: [],
       settings: getDefaultSettings(),
+      achievements: [],
+      stickers: [],
+      pendingAchievement: null,
       hasData: false,
     })
   },
 
   saveToStorage: () => {
-    const { pets, records, dailyStats, settings } = get()
-    saveToStorage({ pets, records, dailyStats, settings })
+    const { pets, records, dailyStats, settings, achievements, stickers } = get()
+    saveToStorage({ pets, records, dailyStats, settings, achievements, stickers })
   },
 }))

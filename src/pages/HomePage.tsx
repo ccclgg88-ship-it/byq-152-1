@@ -4,12 +4,14 @@ import MoodRing from '@/components/MoodRing'
 import { useToast } from '@/hooks/useToast'
 import { getRelativeTime } from '@/utils/date'
 import { getExpProgress, getNextLevelExp, getMoodName, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
-import { Utensils, Hand, Map, Moon, Sparkles, Flame, Clock } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Utensils, Hand, Map, Moon, Sparkles, Flame, Clock, Award, Image, ChevronRight } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { InteractionType } from '@/types'
+import { ACHIEVEMENT_LIST, STICKER_LIST } from '@/data/species'
 
 export default function HomePage() {
-  const { getMainPet, interact, getTodayStats, hasData, pets } = usePetStore()
+  const { getMainPet, interact, getTodayStats, hasData, pets, getRecentAchievements, getRecentStickers, hasNewItems } = usePetStore()
+  const navigate = useNavigate()
   const { showToast } = useToast()
   const [isInteracting, setIsInteracting] = useState<string | null>(null)
 
@@ -214,6 +216,113 @@ export default function HomePage() {
             )
           })}
         </div>
+      </div>
+
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {(() => {
+          const recentAchievements = getRecentAchievements(3)
+          const newItems = hasNewItems()
+          return (
+            <button
+              onClick={() => navigate('/collection')}
+              className="pet-card p-5 text-left transition-all duration-300 hover:-translate-y-0.5"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-400 to-orange-400 flex items-center justify-center shadow-md">
+                    <Award className="text-white" size={18} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                      成就勋章
+                      {newItems.achievements && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      已解锁 {recentAchievements.length} 个
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-gray-400" />
+              </div>
+              <div className="flex gap-2">
+                {recentAchievements.length > 0 ? (
+                  recentAchievements.map((a) => {
+                    const config = ACHIEVEMENT_LIST.find((c) => c.id === a.id)
+                    return (
+                      <div
+                        key={a.id}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg shadow-sm"
+                        style={{
+                          background: `linear-gradient(135deg, ${config?.color || '#9CA3AF'}60, ${config?.color || '#9CA3AF'}30)`,
+                        }}
+                        title={config?.name}
+                      >
+                        {config?.icon || '🏆'}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="flex-1 text-center py-2 text-sm text-gray-400 dark:text-gray-500">
+                    还未解锁成就，快去探索吧！
+                  </div>
+                )}
+              </div>
+            </button>
+          )
+        })()}
+
+        {(() => {
+          const recentStickers = getRecentStickers(4)
+          const newItems = hasNewItems()
+          return (
+            <button
+              onClick={() => navigate('/collection?tab=sticker')}
+              className="pet-card p-5 text-left transition-all duration-300 hover:-translate-y-0.5"
+            >
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-pink-400 to-purple-400 flex items-center justify-center shadow-md">
+                    <Image className="text-white" size={18} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-gray-800 dark:text-gray-100 flex items-center gap-1">
+                      冒险贴纸
+                      {newItems.stickers && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      已收集 {recentStickers.length} 张
+                    </p>
+                  </div>
+                </div>
+                <ChevronRight size={18} className="text-gray-400" />
+              </div>
+              <div className="flex gap-2">
+                {recentStickers.length > 0 ? (
+                  recentStickers.map((s) => {
+                    const config = STICKER_LIST.find((c) => c.id === s.id)
+                    return (
+                      <div
+                        key={s.id + s.obtainedAt}
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-lg bg-gray-100 dark:bg-gray-700 shadow-sm"
+                        title={config?.name}
+                      >
+                        {config?.emoji || '✨'}
+                      </div>
+                    )
+                  })
+                ) : (
+                  <div className="flex-1 text-center py-2 text-sm text-gray-400 dark:text-gray-500">
+                    还没有贴纸，带宠物去冒险吧！
+                  </div>
+                )}
+              </div>
+            </button>
+          )
+        })()}
       </div>
     </div>
   )

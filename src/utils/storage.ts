@@ -5,6 +5,8 @@ export interface StoredData {
   records: any[]
   dailyStats: any[]
   settings: any
+  achievements: any[]
+  stickers: any[]
 }
 
 export const loadFromStorage = (): StoredData | null => {

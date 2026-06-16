@@ -1,4 +1,4 @@
-import { SpeciesConfig } from '@/types'
+import { SpeciesConfig, AchievementConfig, StickerConfig } from '@/types'
 
 export const SPECIES_LIST: SpeciesConfig[] = [
   {
@@ -60,13 +60,260 @@ export const INTERACTION_CONFIG = {
   play: { name: '玩耍', emoji: '🎮', moodChange: 12, expGain: 12 },
 }
 
-export const ADVENTURE_STICKERS = [
-  '🏆 勇敢勋章',
-  '⭐ 幸运星',
-  '🎀 彩虹丝带',
-  '💎 闪亮宝石',
-  '🌸 花朵徽章',
-  '🚀 冒险家徽章',
+export const EXP_PER_LEVEL = 100
+
+export const ACHIEVEMENT_LIST: AchievementConfig[] = [
+  {
+    id: 'first_pet',
+    name: '初次相遇',
+    description: '领养第一只圆嘟嘟宠物',
+    category: 'first',
+    icon: '💕',
+    color: '#FFB6C1',
+    condition: { type: 'adopt', target: 1 },
+  },
+  {
+    id: 'pet_collector_3',
+    name: '小小饲养员',
+    description: '领养 3 只不同的宠物',
+    category: 'first',
+    icon: '🏠',
+    color: '#87CEEB',
+    condition: { type: 'adopt', target: 3 },
+  },
+  {
+    id: 'pet_collector_6',
+    name: '宠物大家庭',
+    description: '领养全部 6 种宠物',
+    category: 'first',
+    icon: '👑',
+    color: '#FFD700',
+    condition: { type: 'species', target: 6 },
+  },
+  {
+    id: 'level_5',
+    name: '初露锋芒',
+    description: '任意宠物达到 5 级',
+    category: 'growth',
+    icon: '⭐',
+    color: '#FFA500',
+    condition: { type: 'level', target: 5 },
+  },
+  {
+    id: 'level_10',
+    name: '茁壮成长',
+    description: '任意宠物达到 10 级',
+    category: 'growth',
+    icon: '🌟',
+    color: '#FFD700',
+    condition: { type: 'level', target: 10 },
+  },
+  {
+    id: 'interact_10',
+    name: '初次互动',
+    description: '累计互动 10 次',
+    category: 'companion',
+    icon: '🤝',
+    color: '#98FB98',
+    condition: { type: 'interact', target: 10 },
+  },
+  {
+    id: 'interact_50',
+    name: '亲密伙伴',
+    description: '累计互动 50 次',
+    category: 'companion',
+    icon: '💝',
+    color: '#FF69B4',
+    condition: { type: 'interact', target: 50 },
+  },
+  {
+    id: 'interact_100',
+    name: '形影不离',
+    description: '累计互动 100 次',
+    category: 'companion',
+    icon: '💖',
+    color: '#FF1493',
+    condition: { type: 'interact', target: 100 },
+  },
+  {
+    id: 'feed_20',
+    name: '美食家',
+    description: '喂食 20 次',
+    category: 'companion',
+    icon: '🍖',
+    color: '#FF6347',
+    condition: { type: 'interact', target: 20, interactionType: 'feed' },
+  },
+  {
+    id: 'streak_3',
+    name: '三日之约',
+    description: '连续签到 3 天',
+    category: 'companion',
+    icon: '🔥',
+    color: '#FF4500',
+    condition: { type: 'streak', target: 3 },
+  },
+  {
+    id: 'streak_7',
+    name: '周周相伴',
+    description: '连续签到 7 天',
+    category: 'companion',
+    icon: '📅',
+    color: '#9370DB',
+    condition: { type: 'streak', target: 7 },
+  },
+  {
+    id: 'first_adventure',
+    name: '冒险家起步',
+    description: '完成第一次冒险',
+    category: 'explore',
+    icon: '🗺️',
+    color: '#32CD32',
+    condition: { type: 'adventure', target: 1 },
+  },
+  {
+    id: 'adventure_5',
+    name: '探险达人',
+    description: '完成 5 次冒险',
+    category: 'explore',
+    icon: '🏕️',
+    color: '#228B22',
+    condition: { type: 'adventure', target: 5 },
+  },
+  {
+    id: 'adventure_10',
+    name: '传奇探险家',
+    description: '完成 10 次冒险',
+    category: 'explore',
+    icon: '🏆',
+    color: '#FFD700',
+    condition: { type: 'adventure', target: 10 },
+  },
+  {
+    id: 'happy_mood',
+    name: '开心果',
+    description: '让宠物达到开心心情',
+    category: 'growth',
+    icon: '😊',
+    color: '#FFB347',
+    condition: { type: 'mood', target: 70 },
+  },
 ]
 
-export const EXP_PER_LEVEL = 100
+export const STICKER_LIST: StickerConfig[] = [
+  {
+    id: 'bravery_medal',
+    name: '勇敢勋章',
+    emoji: '🏆',
+    rarity: 'rare',
+    description: '表彰在冒险中展现出非凡勇气的宠物',
+  },
+  {
+    id: 'lucky_star',
+    name: '幸运星',
+    emoji: '⭐',
+    rarity: 'common',
+    description: '冒险途中发现的闪亮小星星，带来好运',
+  },
+  {
+    id: 'rainbow_ribbon',
+    name: '彩虹丝带',
+    emoji: '🎀',
+    rarity: 'common',
+    description: '彩虹色的漂亮丝带，宠物们都很喜欢',
+  },
+  {
+    id: 'shiny_gem',
+    name: '闪亮宝石',
+    emoji: '💎',
+    rarity: 'legendary',
+    description: '极其罕见的珍贵宝石，散发着神秘光芒',
+  },
+  {
+    id: 'flower_badge',
+    name: '花朵徽章',
+    emoji: '🌸',
+    rarity: 'common',
+    description: '在花海中冒险时获得的精美徽章',
+  },
+  {
+    id: 'adventurer_badge',
+    name: '冒险家徽章',
+    emoji: '🚀',
+    rarity: 'rare',
+    description: '授予完成多次冒险的勇敢探险家',
+  },
+  {
+    id: 'golden_heart',
+    name: '黄金之心',
+    emoji: '💛',
+    rarity: 'legendary',
+    description: '传说中的珍贵收藏品，象征永恒的友谊',
+  },
+  {
+    id: 'mushroom',
+    name: '神奇蘑菇',
+    emoji: '🍄',
+    rarity: 'common',
+    description: '在森林冒险时发现的可爱小蘑菇',
+  },
+  {
+    id: 'crystal',
+    name: '魔法水晶',
+    emoji: '🔮',
+    rarity: 'rare',
+    description: '蕴含神秘力量的水晶球，可以预见好运',
+  },
+  {
+    id: 'comet',
+    name: '彗星碎片',
+    emoji: '☄️',
+    rarity: 'legendary',
+    description: '从天而降的彗星碎片，极其稀有',
+  },
+  {
+    id: 'clover',
+    name: '四叶草',
+    emoji: '🍀',
+    rarity: 'common',
+    description: '代表幸运的四叶草，找到它需要好运气',
+  },
+  {
+    id: 'moonlight',
+    name: '月光碎片',
+    emoji: '🌙',
+    rarity: 'rare',
+    description: '收集了温柔月光的神秘碎片',
+  },
+]
+
+export const STICKER_RARITY_CONFIG = {
+  common: { name: '普通', color: '#9CA3AF', bgColor: '#F3F4F6' },
+  rare: { name: '稀有', color: '#3B82F6', bgColor: '#DBEAFE' },
+  legendary: { name: '传说', color: '#F59E0B', bgColor: '#FEF3C7' },
+}
+
+export const ACHIEVEMENT_CATEGORY_CONFIG = {
+  first: { name: '初遇', icon: '💕', color: '#FFB6C1' },
+  growth: { name: '成长', icon: '🌱', color: '#98FB98' },
+  companion: { name: '陪伴', icon: '💝', color: '#FF69B4' },
+  explore: { name: '探索', icon: '🗺️', color: '#87CEEB' },
+}
+
+export const STICKER_ID_TO_EMOJI: Record<string, string> = {
+  '🏆 勇敢勋章': 'bravery_medal',
+  '⭐ 幸运星': 'lucky_star',
+  '🎀 彩虹丝带': 'rainbow_ribbon',
+  '💎 闪亮宝石': 'shiny_gem',
+  '🌸 花朵徽章': 'flower_badge',
+  '🚀 冒险家徽章': 'adventurer_badge',
+}
+
+export const EMOJI_TO_STICKER_ID: Record<string, string> = {
+  'bravery_medal': '🏆 勇敢勋章',
+  'lucky_star': '⭐ 幸运星',
+  'rainbow_ribbon': '🎀 彩虹丝带',
+  'shiny_gem': '💎 闪亮宝石',
+  'flower_badge': '🌸 花朵徽章',
+  'adventurer_badge': '🚀 冒险家徽章',
+}

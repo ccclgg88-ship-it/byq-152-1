@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { Home, PawPrint, Clock, Settings } from 'lucide-react'
+import { Home, PawPrint, Clock, Settings, BookOpen } from 'lucide-react'
 import { usePetStore } from '@/store/usePetStore'
 
 interface LayoutProps {
@@ -8,13 +8,16 @@ interface LayoutProps {
 
 export default function Layout({ children }: LayoutProps) {
   const location = useLocation()
-  const { getTodayStats: stats } = usePetStore()
+  const { getTodayStats: stats, hasNewItems } = usePetStore()
   const todayStats = stats()
+  const newItems = hasNewItems()
+  const hasCollectionNew = newItems.achievements || newItems.stickers
 
   const navItems = [
     { path: '/', icon: Home, label: '首页概览' },
     { path: '/pets', icon: PawPrint, label: '宠物档案' },
     { path: '/records', icon: Clock, label: '互动记录' },
+    { path: '/collection', icon: BookOpen, label: '图鉴收藏', hasNew: hasCollectionNew },
     { path: '/settings', icon: Settings, label: '设置中心' },
   ]
 
@@ -38,11 +41,14 @@ export default function Layout({ children }: LayoutProps) {
                 key={item.path}
                 to={item.path}
                 className={({ isActive }) =>
-                  `nav-link ${isActive ? 'nav-link-active' : ''}`
+                  `nav-link relative ${isActive ? 'nav-link-active' : ''}`
                 }
               >
                 <item.icon size={18} />
                 <span>{item.label}</span>
+                {item.hasNew && (
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-lg" />
+                )}
               </NavLink>
             ))}
           </nav>
@@ -83,7 +89,7 @@ export default function Layout({ children }: LayoutProps) {
               key={item.path}
               to={item.path}
               className={({ isActive }) =>
-                `flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all ${
+                `flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all relative ${
                   isActive
                     ? 'text-purple-600 dark:text-purple-300'
                     : 'text-gray-500 dark:text-gray-400'
@@ -92,6 +98,9 @@ export default function Layout({ children }: LayoutProps) {
             >
               <item.icon size={20} />
               <span className="text-xs">{item.label}</span>
+              {item.hasNew && (
+                <span className="absolute top-1 right-1 w-2 h-2 rounded-full bg-red-500 animate-pulse shadow-lg" />
+              )}
             </NavLink>
           ))}
         </div>

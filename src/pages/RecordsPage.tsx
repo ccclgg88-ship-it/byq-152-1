@@ -5,10 +5,12 @@ import { SPECIES_LIST, INTERACTION_CONFIG } from '@/data/species'
 import { formatDateTime, getRelativeTime } from '@/utils/date'
 import { getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import { PetSpecies, InteractionType, InteractionRecord } from '@/types'
-import { Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react'
+import { Search, Filter, ChevronDown, ChevronUp, X, ExternalLink } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 
 export default function RecordsPage() {
   const { getFilteredRecords, getPetById, hasData } = usePetStore()
+  const navigate = useNavigate()
   const { showToast } = useToast()
 
   const [speciesFilter, setSpeciesFilter] = useState<PetSpecies | ''>('')
@@ -250,6 +252,18 @@ export default function RecordsPage() {
                           </div>
                         ))}
                       </div>
+                      {record.type === 'adventure' && record.details.stickerId && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            navigate('/collection?tab=sticker')
+                          }}
+                          className="flex items-center gap-1 text-sm text-purple-600 dark:text-purple-400 hover:underline mt-2"
+                        >
+                          <ExternalLink size={14} />
+                          在图鉴中查看贴纸
+                        </button>
+                      )}
                       <p className="text-xs text-gray-400 dark:text-gray-500">
                         发生时间：{formatDateTime(record.createdAt)}
                       </p>
