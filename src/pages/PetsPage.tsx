@@ -4,7 +4,7 @@ import PetCard from '@/components/PetCard'
 import Modal from '@/components/Modal'
 import { useToast } from '@/hooks/useToast'
 import { SPECIES_LIST } from '@/data/species'
-import { validatePetName } from '@/utils/pet'
+import { validatePetName, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import { PetSpecies, Pet } from '@/types'
 import { Plus, Search, X, TrendingUp, Edit, Star } from 'lucide-react'
 import {
@@ -470,6 +470,9 @@ export default function PetsPage() {
               </div>
               <div>
                 <p className="font-bold text-gray-800 dark:text-gray-100">{selectedPet.name}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-0.5">
+                  {getSpeciesEmoji(selectedPet.species)} {getSpeciesName(selectedPet.species)}
+                </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   Lv.{selectedPet.level} · 经验 {selectedPet.exp}
                 </p>

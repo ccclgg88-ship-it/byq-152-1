@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Pet } from '@/types'
-import { getMoodEmoji, getMoodName, getExpProgress, getNextLevelExp } from '@/utils/pet'
+import { getMoodEmoji, getMoodName, getExpProgress, getNextLevelExp, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import ContextMenu from './ContextMenu'
 import { Star, Edit, TrendingUp, Crown } from 'lucide-react'
 
@@ -71,6 +71,10 @@ export default function PetCard({ pet, onSetMain, onEditName, onViewGrowth, onCl
           <h3 className="font-bold text-gray-800 dark:text-gray-100 truncate">{pet.name}</h3>
           <span className="text-2xl">{getMoodEmoji(pet.mood)}</span>
         </div>
+
+        <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+          {getSpeciesEmoji(pet.species)} {getSpeciesName(pet.species)}
+        </p>
 
         <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
           Lv.{pet.level} · {getMoodName(pet.mood)}

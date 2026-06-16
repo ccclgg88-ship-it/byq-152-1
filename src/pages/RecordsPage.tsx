@@ -3,6 +3,7 @@ import { usePetStore } from '@/store/usePetStore'
 import { useToast } from '@/hooks/useToast'
 import { SPECIES_LIST, INTERACTION_CONFIG } from '@/data/species'
 import { formatDateTime, getRelativeTime } from '@/utils/date'
+import { getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import { PetSpecies, InteractionType, InteractionRecord } from '@/types'
 import { Search, Filter, ChevronDown, ChevronUp, X } from 'lucide-react'
 
@@ -204,10 +205,15 @@ export default function RecordsPage() {
                         {record.description}
                       </h3>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                       <span className="flex items-center gap-1">
                         {pet?.emoji} {pet?.name || '未知宠物'}
                       </span>
+                      {pet && (
+                        <span className="flex items-center gap-1">
+                          {getSpeciesEmoji(pet.species)} {getSpeciesName(pet.species)}
+                        </span>
+                      )}
                       <span>·</span>
                       <span>{getRelativeTime(record.createdAt)}</span>
                     </div>

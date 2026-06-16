@@ -1,5 +1,5 @@
-import { PetMood } from '@/types'
-import { MOOD_CONFIG, EXP_PER_LEVEL } from '@/data/species'
+import { PetMood, PetSpecies } from '@/types'
+import { MOOD_CONFIG, EXP_PER_LEVEL, SPECIES_LIST } from '@/data/species'
 
 export const getMoodFromValue = (value: number): PetMood => {
   if (value >= MOOD_CONFIG.happy.minValue) return 'happy'
@@ -44,4 +44,19 @@ export const validatePetName = (name: string): { valid: boolean; message?: strin
     return { valid: false, message: '昵称不能超过12个字符' }
   }
   return { valid: true }
+}
+
+export const getSpeciesName = (species: PetSpecies): string => {
+  const config = SPECIES_LIST.find((s) => s.id === species)
+  return config?.name || species
+}
+
+export const getSpeciesEmoji = (species: PetSpecies): string => {
+  const config = SPECIES_LIST.find((s) => s.id === species)
+  return config?.emoji || '🐾'
+}
+
+export const getSpeciesColor = (species: PetSpecies): string => {
+  const config = SPECIES_LIST.find((s) => s.id === species)
+  return config?.color || '#888888'
 }

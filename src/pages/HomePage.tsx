@@ -3,7 +3,7 @@ import { usePetStore } from '@/store/usePetStore'
 import MoodRing from '@/components/MoodRing'
 import { useToast } from '@/hooks/useToast'
 import { getRelativeTime } from '@/utils/date'
-import { getExpProgress, getNextLevelExp, getMoodName } from '@/utils/pet'
+import { getExpProgress, getNextLevelExp, getMoodName, getSpeciesName, getSpeciesEmoji } from '@/utils/pet'
 import { Utensils, Hand, Map, Moon, Sparkles, Flame, Clock } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { InteractionType } from '@/types'
@@ -135,6 +135,9 @@ export default function HomePage() {
             <h2 className="text-2xl md:text-3xl font-bold text-gray-800 dark:text-gray-100 mb-1">
               {mainPet.name}
             </h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-2">
+              {getSpeciesEmoji(mainPet.species)} {getSpeciesName(mainPet.species)}
+            </p>
             <p className="text-gray-500 dark:text-gray-400 mb-4">
               {getMoodName(mainPet.mood)} · Lv.{mainPet.level}
             </p>
